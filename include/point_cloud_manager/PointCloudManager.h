@@ -1,0 +1,90 @@
+#ifndef __CLOUD_MANAGER__
+#define __CLOUD_MANAGER__
+
+// Eigen
+#include <Eigen/Dense>
+#include <Eigen/Core>
+
+// ROS
+#include <ros/ros.h>
+#include <tf/transform_listener.h>
+#include "tf_conversions/tf_eigen.h"
+
+// PCL
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/common/transforms.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/surface/convex_hull.h>
+#include <pcl/surface/concave_hull.h>
+#include <pcl/filters/project_inliers.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/segmentation/region_growing.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/segmentation/extract_clusters.h>
+#include <pcl/features/moment_of_inertia_estimation.h>
+
+typedef pcl::PointXYZ PointXYZ;
+typedef pcl::PointCloud<PointXYZ> PointCloud;
+typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudRGB;
+
+using namespace Eigen;
+
+class PointCloudManager
+{
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr _tree;
+
+    pcl::VoxelGrid<PointXYZ> _vox_grid;
+    pcl::PassThrough<pcl::PointXYZ> _pass_filter;
+
+    std::vector<pcl::PointIndices> _cluster_indices;
+    std::vector<PointCloud::Ptr> _cloud_vect;
+
+    pcl::PointCloud <pcl::Normal>::Ptr _normals;
+    pcl::NormalEstimation<PointXYZ, pcl::Normal> _normal_estimator;
+    pcl::RegionGrowing<PointXYZ, pcl::Normal> _reg;
+    pcl::EuclideanClusterExtraction<PointXYZ> _ec;
+    pcl::MomentOfInertiaEstimation <PointXYZ> _feature_extractor;
+    pcl::ConvexHull<PointXYZ> _conv_hull;
+    pcl::ConcaveHull<PointXYZ> _conc_hull;
+    //pcl::ExtractIndices<pcl::PointXYZ> _extract;
+
+    pcl::ModelCoefficients::Ptr _coefficients;
+    pcl::SACSegmentation<PointXYZ> _sac_seg;
+    pcl::PointIndices::Ptr _inliers;
+    pcl::ProjectInliers<PointXYZ> _proj;
+
+
+    // Functions -------------------------------------------------------------------------------
+public:
+    PointCloudManager();
+    ~PointCloudManager();
+
+    void resetParams();
+
+    //Filtering
+    void voxelDownsampling(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double dim_x, double dim_y, double dim_z);
+    void filterCloudXYZ(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double x_min, double x_max, double y_min, double y_max, double z_min, double z_max);
+    void filterCloudAxis(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double min, double max, std::string axis, bool negative = false);
+
+    //Transform
+    void transformCloud(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, Affine3d& transf);
+
+    //Segment
+    void segmentRegionGrowing(PointCloud::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, int min_points = 50, int max_points = 100000, double n_neigh = 0.10, double smootheness_th = 0.10, double curvature_th = 0.10);
+    void horizontalPlaneSegmentation(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out);
+    std::vector<PointCloud::Ptr> euclideanClustering(PointCloud::Ptr cloud, double tolerance = 0.05, int min_size = 30, int max_size = 15000);
+
+    //Boxes and Hulls
+    void extractBoundingBox(PointCloud::Ptr cloud, pcl::PointXYZ *min_point_OBB, pcl::PointXYZ *max_point_OBB, pcl::PointXYZ *position_OBB, Eigen::Matrix3f *rotational_matrix_OBB);
+    void getConvexHull(PointCloud::Ptr cloud, PointCloud::Ptr hull, int dimension = 3);
+    void getConcaveHull(PointCloud::Ptr cloud, PointCloud::Ptr hull, int dimension = 3, double alpha = 0.1);
+};
+
+#endif // __CLOUD_MANAGER__
