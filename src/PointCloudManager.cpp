@@ -52,6 +52,13 @@ void PointCloudManager::filterCloudAxis(PointCloud::Ptr cloud_in, PointCloud::Pt
     _pass_filter.filter (*cloud_out);
 }
 
+void PointCloudManager::outlierRemoval(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, int mean_k, double std_th){
+    _sor.setInputCloud (cloud_in);
+    _sor.setMeanK (mean_k);
+    _sor.setStddevMulThresh (std_th);
+    _sor.filter (*cloud_out);
+}
+
 void PointCloudManager::segmentRegionGrowing(PointCloud::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, int min_points, int max_points, double n_neigh, double smootheness_th, double curvature_th){
 
     _normal_estimator.setSearchMethod (_tree);

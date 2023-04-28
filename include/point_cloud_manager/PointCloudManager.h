@@ -28,7 +28,9 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/features/moment_of_inertia_estimation.h>
+
 
 typedef pcl::PointXYZ PointXYZ;
 typedef pcl::PointCloud<PointXYZ> PointCloud;
@@ -38,10 +40,11 @@ using namespace Eigen;
 
 class PointCloudManager
 {
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr _tree;
+    pcl::search::KdTree<PointXYZ>::Ptr _tree;
 
     pcl::VoxelGrid<PointXYZ> _vox_grid;
-    pcl::PassThrough<pcl::PointXYZ> _pass_filter;
+    pcl::PassThrough<PointXYZ> _pass_filter;
+    pcl::StatisticalOutlierRemoval<PointXYZ> _sor;
 
     std::vector<pcl::PointIndices> _cluster_indices;
     std::vector<PointCloud::Ptr> _cloud_vect;
@@ -72,6 +75,7 @@ public:
     void voxelDownsampling(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double dim_x, double dim_y, double dim_z);
     void filterCloudXYZ(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double x_min, double x_max, double y_min, double y_max, double z_min, double z_max);
     void filterCloudAxis(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double min, double max, std::string axis, bool negative = false);
+    void outlierRemoval(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, int mean_k = 50, double std_th = 1.0);
 
     //Transform
     void transformCloud(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, Affine3d& transf);
