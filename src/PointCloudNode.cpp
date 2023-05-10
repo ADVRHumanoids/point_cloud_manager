@@ -105,9 +105,10 @@ int main(int argc, char** argv){
             senseTF(&_listener, &_tr, &_transf, _cloud->header.frame_id, "pelvis");
 
             pcm.voxelDownsampling(_cloud, _cloud, 0.01, 0.01, 0.01);
+            pcm.outlierRemoval(_cloud, _cloud, 50, 1.0);
 
             pcm.transformCloud(_cloud, _cloud, _transf);
-            pcm.filterCloudAxis(_cloud, _cloud, -0.65, 2.0, "z", false);
+            pcm.filterCloudAxis(_cloud, _cloud, -0.7, 2.0, "z", false);
             _cloud_vector = pcm.euclideanClustering(_cloud, 0.05, 30, 15000);
 
             if(_cloud_vector.size() > 0){
