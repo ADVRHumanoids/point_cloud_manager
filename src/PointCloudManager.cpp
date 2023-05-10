@@ -8,7 +8,8 @@ PointCloudManager::PointCloudManager ()
 void PointCloudManager::resetParams(){
     _normals = boost::shared_ptr<pcl::PointCloud <pcl::Normal>>(new pcl::PointCloud <pcl::Normal>);
 
-    _tree = boost::shared_ptr<pcl::search::KdTree<pcl::PointXYZ>>(new pcl::search::KdTree<pcl::PointXYZ>());
+    _tree = boost::shared_ptr<pcl::search::KdTree<PointXYZ>>(new pcl::search::KdTree<PointXYZ>());
+    _tree_rgb = boost::shared_ptr<pcl::search::KdTree<PointRGB>>(new pcl::search::KdTree<PointRGB>());
 }
 
 void PointCloudManager::voxelDownsampling(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double dim_x, double dim_y, double dim_z){
@@ -19,7 +20,19 @@ void PointCloudManager::voxelDownsampling(PointCloud::Ptr cloud_in, PointCloud::
     _vox_grid.filter (*cloud_out);
 }
 
+void PointCloudManager::voxelDownsampling(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, double dim_x, double dim_y, double dim_z){
+
+    //NOTE: Maybe check on N° points needed
+    _vox_grid_color.setInputCloud (cloud_in);
+    _vox_grid_color.setLeafSize (dim_x, dim_y, dim_z);
+    _vox_grid_color.filter (*cloud_out);
+}
+
 void PointCloudManager::transformCloud(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, Affine3d& transf){
+    pcl::transformPointCloud(*cloud_in, *cloud_out, transf);
+}
+
+void PointCloudManager::transformCloud(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, Affine3d& transf){
     pcl::transformPointCloud(*cloud_in, *cloud_out, transf);
 }
 
@@ -79,6 +92,31 @@ void PointCloudManager::segmentRegionGrowing(PointCloud::Ptr cloud_in, PointClou
     _reg.extract (_cluster_indices);
 
     cloud_out = _reg.getColoredCloud();
+}
+
+void PointCloudManager::segmentRegionGrowingRGB(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, int min_points, int max_points, float dist_th, float color_point_th, float region_point_th){
+
+    ROS_WARN("Segment");
+    pcl::IndicesPtr indices (new std::vector <int>);
+    pcl::removeNaNFromPointCloud (*cloud_in, *indices);
+
+    _color_reg.setInputCloud (cloud_in);
+    _color_reg.setIndices (indices);
+    _color_reg.setSearchMethod (_tree_rgb);
+    _color_reg.setDistanceThreshold (dist_th); //distance to check if neighbor or not
+    _color_reg.setPointColorThreshold (color_point_th);
+    _color_reg.setRegionColorThreshold (region_point_th);
+    _color_reg.setMinClusterSize (min_points);
+    //_color_reg.setMaxClusterSize (max_points);
+
+    ROS_WARN("Set everything");
+
+    _cluster_indices.clear();
+    _color_reg.extract (_cluster_indices);
+    ROS_WARN("Extract indices");
+
+    cloud_out = _color_reg.getColoredCloud();
+    //ROS_WARN("Points: %ld", cloud_out->points.size());
 }
 
 void PointCloudManager::extractBoundingBox(PointCloud::Ptr cloud, pcl::PointXYZ *min_point_OBB, pcl::PointXYZ *max_point_OBB, pcl::PointXYZ *position_OBB, Eigen::Matrix3f *rotational_matrix_OBB){

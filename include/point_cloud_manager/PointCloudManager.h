@@ -13,6 +13,7 @@
 // PCL
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/search/search.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl/common/transforms.h>
 #include <pcl/ModelCoefficients.h>
@@ -28,21 +29,25 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <pcl/segmentation/region_growing_rgb.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/features/moment_of_inertia_estimation.h>
 
 
+typedef pcl::PointXYZRGB PointRGB;
 typedef pcl::PointXYZ PointXYZ;
 typedef pcl::PointCloud<PointXYZ> PointCloud;
-typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudRGB;
+typedef pcl::PointCloud<PointRGB> PointCloudRGB;
 
 using namespace Eigen;
 
 class PointCloudManager
 {
     pcl::search::KdTree<PointXYZ>::Ptr _tree;
+    pcl::search::Search<PointRGB>::Ptr _tree_rgb;
 
     pcl::VoxelGrid<PointXYZ> _vox_grid;
+    pcl::VoxelGrid<PointRGB> _vox_grid_color;
     pcl::PassThrough<PointXYZ> _pass_filter;
     pcl::StatisticalOutlierRemoval<PointXYZ> _sor;
 
@@ -52,6 +57,7 @@ class PointCloudManager
     pcl::PointCloud <pcl::Normal>::Ptr _normals;
     pcl::NormalEstimation<PointXYZ, pcl::Normal> _normal_estimator;
     pcl::RegionGrowing<PointXYZ, pcl::Normal> _reg;
+    pcl::RegionGrowingRGB<PointRGB> _color_reg;
     pcl::EuclideanClusterExtraction<PointXYZ> _ec;
     pcl::MomentOfInertiaEstimation <PointXYZ> _feature_extractor;
     pcl::ConvexHull<PointXYZ> _conv_hull;
@@ -73,15 +79,18 @@ public:
 
     //Filtering
     void voxelDownsampling(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double dim_x, double dim_y, double dim_z);
+    void voxelDownsampling(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, double dim_x, double dim_y, double dim_z);
     void filterCloudXYZ(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double x_min, double x_max, double y_min, double y_max, double z_min, double z_max);
     void filterCloudAxis(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double min, double max, std::string axis, bool negative = false);
     void outlierRemoval(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, int mean_k = 50, double std_th = 1.0);
 
     //Transform
     void transformCloud(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, Affine3d& transf);
+    void transformCloud(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, Affine3d& transf);
 
     //Segment
     void segmentRegionGrowing(PointCloud::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, int min_points = 50, int max_points = 100000, double n_neigh = 0.10, double smootheness_th = 0.10, double curvature_th = 0.10);
+    void segmentRegionGrowingRGB(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, int min_points = 50, int max_points = 100000, float dist_th = 0.05, float color_point_th = 0.2, float region_point_th = 0.2);
     void horizontalPlaneSegmentation(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out);
     std::vector<PointCloud::Ptr> euclideanClustering(PointCloud::Ptr cloud, double tolerance = 0.05, int min_size = 30, int max_size = 15000);
 

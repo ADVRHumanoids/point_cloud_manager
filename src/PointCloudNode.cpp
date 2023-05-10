@@ -11,13 +11,14 @@
 #include <point_cloud_manager/PointCloudManager.h>
 
 typedef pcl::PointXYZRGB PointRGB;
-typedef pcl::PointXYZ Point;
-typedef pcl::PointCloud<Point> PointCloudT;
+typedef pcl::PointXYZ PointXYZ;
+typedef pcl::PointCloud<PointXYZ> PointCloudT;
 
 using namespace Eigen;
 
 //Global Vars
 PointCloudT::Ptr _cloud (new PointCloudT);
+PointCloudT::Ptr _cloud2 (new PointCloudT);
 std::vector<PointCloudT::Ptr> _cloud_vector;
 
 bool _acquired = false;
@@ -44,7 +45,7 @@ void senseTF(tf::TransformListener * listener, tf::StampedTransform *tr, Affine3
     }
 }
 
-visualization_msgs::Marker boxMarker(pcl::PointXYZ min_point_OBB, pcl::PointXYZ max_point_OBB, pcl::PointXYZ position_OBB, Eigen::Matrix3f rotational_matrix_OBB, int id, std::string link_name){
+visualization_msgs::Marker boxMarker(PointXYZ min_point_OBB, PointXYZ max_point_OBB, PointXYZ position_OBB, Eigen::Matrix3f rotational_matrix_OBB, int id, std::string link_name){
     visualization_msgs::Marker marker;
 
     Quaternionf quat (rotational_matrix_OBB);
@@ -76,6 +77,7 @@ visualization_msgs::Marker boxMarker(pcl::PointXYZ min_point_OBB, pcl::PointXYZ 
     return marker;
 }
 
+
 int main(int argc, char** argv){
 
     ros::init(argc, argv, "cloud_manager");
@@ -93,9 +95,11 @@ int main(int argc, char** argv){
     tf::StampedTransform _tr;
     Affine3d _transf;
 
-    pcl::PointXYZ min_point_OBB, max_point_OBB, position_OBB;
+    PointXYZ min_point_OBB, max_point_OBB, position_OBB;
     Eigen::Matrix3f rotational_matrix_OBB;
     visualization_msgs::MarkerArray marker_array;
+
+    pcl::ExtractIndices<pcl::PointXYZ> extract;
 
     ros::Rate loop_rate(30);
     while (ros::ok())
@@ -108,36 +112,36 @@ int main(int argc, char** argv){
             pcm.outlierRemoval(_cloud, _cloud, 50, 1.0);
 
             pcm.transformCloud(_cloud, _cloud, _transf);
+
             pcm.filterCloudAxis(_cloud, _cloud, -0.7, 2.0, "z", false);
             _cloud_vector = pcm.euclideanClustering(_cloud, 0.05, 30, 15000);
 
-            if(_cloud_vector.size() > 0){
-                //msg->points = _cloud_vector[0]->points;
-                pcm.horizontalPlaneSegmentation(_cloud_vector[0], _cloud);
+            *_cloud2 = *_cloud;
 
-                pcm.getConcaveHull(_cloud, _cloud, 2, 0.1);
+            msg->points.clear();
 
-                msg->points = (_cloud)->points;
+            for(int i = 0; i < _cloud_vector.size(); i++){
+
+                pcm.horizontalPlaneSegmentation(_cloud_vector[i], _cloud);
+
+                pcm.getConcaveHull(_cloud, _cloud, 2, 0.05);
+                *msg = *msg + *_cloud;
 
                 pcm.extractBoundingBox(_cloud, &min_point_OBB, &max_point_OBB, &position_OBB, &rotational_matrix_OBB);
 
                 marker_array.markers.clear();
-                marker_array.markers.push_back(boxMarker(min_point_OBB, max_point_OBB, position_OBB, rotational_matrix_OBB, 1, "pelvis"));
+                marker_array.markers.push_back(boxMarker(min_point_OBB, max_point_OBB, position_OBB, rotational_matrix_OBB, i+1, "pelvis"));
 
                 pub_marker.publish(marker_array);
-            }
-            else{
-                ROS_WARN("SMALL -- Using entire cloud");
-                *msg = *_cloud;
             }
 
             msg->header.frame_id = "pelvis";
 
             _acquired = false;
-        }
 
-        pcl_conversions::toPCL(ros::Time::now(), msg->header.stamp);
-        pub.publish(msg);
+            pcl_conversions::toPCL(ros::Time::now(), msg->header.stamp);
+            pub.publish(msg);
+        }
 
         ros::spinOnce();
         loop_rate.sleep();
