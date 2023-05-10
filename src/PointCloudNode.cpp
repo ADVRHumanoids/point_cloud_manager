@@ -119,6 +119,9 @@ int main(int argc, char** argv){
             *_cloud2 = *_cloud;
 
             msg->points.clear();
+            marker_array.markers.clear();
+
+            ROS_WARN("Clusters: %ld", _cloud_vector.size());
 
             for(int i = 0; i < _cloud_vector.size(); i++){
 
@@ -129,15 +132,13 @@ int main(int argc, char** argv){
 
                 pcm.extractBoundingBox(_cloud, &min_point_OBB, &max_point_OBB, &position_OBB, &rotational_matrix_OBB);
 
-                marker_array.markers.clear();
                 marker_array.markers.push_back(boxMarker(min_point_OBB, max_point_OBB, position_OBB, rotational_matrix_OBB, i+1, "pelvis"));
-
-                pub_marker.publish(marker_array);
             }
 
             msg->header.frame_id = "pelvis";
 
             _acquired = false;
+            pub_marker.publish(marker_array);
 
             pcl_conversions::toPCL(ros::Time::now(), msg->header.stamp);
             pub.publish(msg);
