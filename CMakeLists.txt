@@ -47,6 +47,10 @@ add_executable(PointCloudNode src/PointCloudNode.cpp)
 add_dependencies(PointCloudNode ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(PointCloudNode ${catkin_LIBRARIES} ${PCL_LIBRARIES} PointCloudManager)
 
+add_executable(showPCD src/showPCD.cpp)
+add_dependencies(showPCD ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(showPCD ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 ## Mark cpp header files for installation
 install(DIRECTORY include/
   DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}

@@ -92,6 +92,7 @@ public:
     void segmentRegionGrowing(PointCloud::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, int min_points = 50, int max_points = 100000, double n_neigh = 0.10, double smootheness_th = 0.10, double curvature_th = 0.10);
     void segmentRegionGrowingRGB(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, int min_points = 50, int max_points = 100000, float dist_th = 0.05, float color_point_th = 0.2, float region_point_th = 0.2);
     void horizontalPlaneSegmentation(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out);
+    void planeSegmentation(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out);
     std::vector<PointCloud::Ptr> euclideanClustering(PointCloud::Ptr cloud, double tolerance = 0.05, int min_size = 30, int max_size = 15000);
 
     //Boxes and Hulls

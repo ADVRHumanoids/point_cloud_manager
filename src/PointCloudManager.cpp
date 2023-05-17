@@ -167,6 +167,28 @@ void PointCloudManager::horizontalPlaneSegmentation(PointCloud::Ptr cloud_in, Po
     _proj.filter (*cloud_out);
 }
 
+void PointCloudManager::planeSegmentation(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out){
+    _coefficients = boost::shared_ptr<pcl::ModelCoefficients>(new pcl::ModelCoefficients());
+    _inliers = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
+
+    _sac_seg.setOptimizeCoefficients (true);
+    _sac_seg.setModelType (pcl::SACMODEL_PLANE);
+
+    _sac_seg.setMethodType (pcl::SAC_RANSAC);
+    _sac_seg.setMaxIterations(500);
+    _sac_seg.setDistanceThreshold (0.025);
+
+    _sac_seg.setInputCloud (cloud_in);
+    _sac_seg.segment (*_inliers, *_coefficients);
+
+    // Project the model inliers
+    _proj.setModelType (pcl::SACMODEL_PLANE);
+    _proj.setInputCloud (cloud_in);
+    _proj.setIndices (_inliers);
+    _proj.setModelCoefficients (_coefficients);
+    _proj.filter (*cloud_out);
+}
+
 std::vector<PointCloud::Ptr> PointCloudManager::euclideanClustering(PointCloud::Ptr cloud, double tolerance, int min_size, int max_size){
     _cluster_indices.clear();
 
