@@ -43,12 +43,29 @@ using namespace Eigen;
 
 class PointCloudManager
 {
+    void point_cloud_callback(const PointCloudRGB::ConstPtr& msg, int i);
+
+    ros::NodeHandle _nh;
+    tf::TransformListener _listener;
+    tf::StampedTransform _transform;
+
+    Affine3d _camera_transf;
+    
+    PointCloudRGB::Ptr _merged_cloud;
+
+    std::vector<ros::Subscriber> _cloud_subs;
+    ros::Publisher _cloud_pub;
+    std::vector<std::string> _input_topics;
+    std::vector<PointCloudRGB::Ptr> _cloud_color_vect;
+    std::vector<bool> _is_callback_done;
+
     pcl::search::KdTree<PointXYZ>::Ptr _tree;
     pcl::search::Search<PointRGB>::Ptr _tree_rgb;
 
     pcl::VoxelGrid<PointXYZ> _vox_grid;
     pcl::VoxelGrid<PointRGB> _vox_grid_color;
     pcl::PassThrough<PointXYZ> _pass_filter;
+    pcl::PassThrough<PointRGB> _pass_filter_color;
     pcl::StatisticalOutlierRemoval<PointXYZ> _sor;
 
     std::vector<pcl::PointIndices> _cluster_indices;
@@ -69,10 +86,9 @@ class PointCloudManager
     pcl::PointIndices::Ptr _inliers;
     pcl::ProjectInliers<PointXYZ> _proj;
 
-
     // Functions -------------------------------------------------------------------------------
 public:
-    PointCloudManager();
+    PointCloudManager(std::vector<std::string> input_topics);
     ~PointCloudManager();
 
     void resetParams();
@@ -82,6 +98,7 @@ public:
     void voxelDownsampling(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, double dim_x, double dim_y, double dim_z);
     void filterCloudXYZ(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double x_min, double x_max, double y_min, double y_max, double z_min, double z_max);
     void filterCloudAxis(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, double min, double max, std::string axis, bool negative = false);
+    void filterCloudAxis(PointCloudRGB::Ptr cloud_in, PointCloudRGB::Ptr cloud_out, double min, double max, std::string axis, bool negative = false);
     void outlierRemoval(PointCloud::Ptr cloud_in, PointCloud::Ptr cloud_out, int mean_k = 50, double std_th = 1.0);
 
     //Transform
@@ -99,6 +116,8 @@ public:
     void extractBoundingBox(PointCloud::Ptr cloud, pcl::PointXYZ *min_point_OBB, pcl::PointXYZ *max_point_OBB, pcl::PointXYZ *position_OBB, Eigen::Matrix3f *rotational_matrix_OBB);
     void getConvexHull(PointCloud::Ptr cloud, PointCloud::Ptr hull, int dimension = 3);
     void getConcaveHull(PointCloud::Ptr cloud, PointCloud::Ptr hull, int dimension = 3, double alpha = 0.1);
+
+    void run();
 };
 
 #endif // __CLOUD_MANAGER__
