@@ -45,9 +45,6 @@ void PointCloudManager::run()
         _merged_cloud->header.frame_id = "zedx_left_left_camera_frame";
         for (auto& cloud : _cloud_color_vect)
         {
-            //Reduce number of points
-            voxelDownsampling(cloud, cloud, 0.05, 0.05, 0.05);
-
             if(cloud->header.frame_id.compare("zedx_left_left_camera_frame") != 0){
                 //Transform cloud in common frame
                 try{
@@ -70,6 +67,9 @@ void PointCloudManager::run()
             //Sum clouds
             *_merged_cloud += *cloud;
         }
+
+        //Reduce number of points
+        voxelDownsampling(_merged_cloud, _merged_cloud, 0.05, 0.05, 0.05);
 
         _cloud_pub.publish(_merged_cloud);
 
